@@ -22,3 +22,33 @@ params_add_record = {'executor_id': 120933, 'service_id[]': 1210056, 'start_date
 resp = requests.post(url_add_record, data=params_add_record)
 resp.encoding = 'utf-8'
 print(resp.json())
+
+# bot_variables - тут находятся все переменные у клиента в сейлбот которые есть
+# client - это объект клиента
+
+def add_attendees(client, bot_variables, email, name):
+    # Создание участника вебинара
+    try:
+        api_key = client.get_var_val('myownconference_api_key')  # апи ключ в переменной проекта
+        if api_key:
+            if not name:
+                name = bot_variables.get('name')
+            if not email:
+                email = bot_variables.get('email')
+                if not email:
+                    return {'status': '0', 'error': 'Missing required variables - email'}
+            params = {
+                "name": name,
+                "email": email
+            }
+            status, result = main_api_request(api_key, 'attendeesCreate', params)  # вызов функции в ней просто запрос к апи (тут можешь просто свой вызов добавить)
+            if status:
+                answer = {'status': '1', 'result': True}
+            else:
+                answer = {'status': '0', 'error': result}
+            client.get_project().increment_send_statistic()
+        else:
+            answer = {'status': '0', 'error': "No api_key in 'myownconference_api_key' variable in project settings"}
+    except Exception as e:
+        answer = {'status': '0', 'error': str(e)}
+    return ujson.dumps(answer, ensure_ascii=False)
