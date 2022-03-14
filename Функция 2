@@ -1,0 +1,48 @@
+import requests
+
+account_id = "6a7f2702e66f"
+user_id ="1bea93a2cd9c"
+access_token = "c1fe072a1b8897321bd75b75c74a4c28"
+
+#задание b - получить доступное время для записи
+# params_free_date = {'start_day': '2022-03-13', 'finish_day': '2022-03-13', 'service_id[]': '1214453',
+#         'executor_id': '121126'}
+# url_free_date = (f"https://klientiks.ru/clientix/Restapi/list/a/{account_id}/u/{user_id}/t/{access_token}/m/availableTimes")
+# data_free_date = requests.get(url_free_date, params=params_free_date)
+# print(data_free_date.json())
+
+def get_free_date(client,start_day,finish_day=None,service_id=None,executor_id=None):
+    try:
+        account_id = client.get_var_val('klientiks_account_id')
+        user_id = client.get_var_val('klientiks_user_id')
+        access_token = client.get_var_val('klientiks_access_token')
+        if account_id and user_id and access_token:
+            if not start_day:
+                    return ujson.dumps({'status': '0', 'error': 'Missing required variables - start_day'},
+                                           ensure_ascii=False)
+            params_free_date = {'start_day': start_day,
+                                'finish_day': finish_day,
+                                'service_id[]': service_id,
+                                'executor_id': executor_id}
+            url_free_date = (f"https://klientiks.ru/clientix/Restapi/list/a/{account_id}/u/{user_id}"
+                             f"/t/{access_token}/m/availableTimes")
+            response = requests.get(url_free_date, params=params_free_date)
+            if response.ok:
+                data_get_free_date = response.json()
+                if data_get_free_date.get('items'):
+                    if data_get_free_date.get('items') == 'No data':
+                        answer = {'status': '1', 'result': 'No data'}
+                    else:
+                        answer = {'status': '1', 'result': data_get_free_date.get('items')}
+                else:
+                    answer = {'status': '0', 'error': response.json()}
+                client.get_project().increment_send_statistic()
+            else:
+                answer = {'status': '0', 'error': response.json()}
+        else:
+            answer = {'status': '0', 'error': "No account_id/user_id/access_token in 'klientiks_api_key'"
+                                              " variable in project settings"}
+    except Exception as e:
+     answer = {'status': '0', 'error': str(e)}
+    return ujson.dumps(answer, ensure_ascii=False)
+    
